@@ -1,0 +1,482 @@
+@font-face {
+  font-family: 'iA Writer Mono';
+  src: url('../fonts/iAWriterMonoS-Regular.woff2') format('woff2');
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'iA Writer Mono';
+  src: url('../fonts/iAWriterMonoS-Bold.woff2') format('woff2');
+  font-weight: bold;
+  font-display: swap;
+}
+
+@property --typing-line {
+  syntax: '<length>';
+  inherits: true;
+  initial-value: 0px;
+}
+
+:root {
+  --typing-line: round(50dvh, 1px);
+  --font: 'iA Writer Mono', Consolas, Menlo, ui-monospace, monospace;
+  --type-size: 4.233;
+  --line-height: 1.5;
+  --sheet-width: 210;
+  --sheet-height: 297;
+  --sheet-rows: 38;
+  --row: calc(var(--type-size) * var(--line-height));
+  --sheet-foot: calc(var(--sheet-height) - 25.4 - var(--sheet-rows) * var(--row));
+  --mm: min(1rem / var(--type-size), 100vw / (var(--sheet-width) + 2 * var(--row)));
+  --gap: calc(var(--row) * var(--mm));
+  --page-margin: calc(25.4 * var(--mm));
+
+  color-scheme: light dark;
+  --backdrop: light-dark(#e4dfd4, #131211);
+  --paper: light-dark(#fcfaf5, #242220);
+  --text: light-dark(#1f1d1b, #d9d2c3);
+  --muted: light-dark(#655e53, #8a8478);
+  --ribbon-red: light-dark(#c0262d, #ff5a52);
+  --highlighter: light-dark(#ffe45c, rgb(214 160 40 / 0.3));
+  --highlighter-blend: multiply;
+  --whitespace: color-mix(in oklab, var(--muted) 45%, transparent);
+  --shadow: 0 0.5px 1px rgb(60 45 25 / 0.1), 0 2px 6px rgb(60 45 25 / 0.05), 0 18px 48px rgb(60 45 25 / 0.09);
+  --drop-shadow: drop-shadow(0 0.5px 1px rgb(60 45 25 / 0.1)) drop-shadow(0 2px 6px rgb(60 45 25 / 0.05))
+    drop-shadow(0 18px 48px rgb(60 45 25 / 0.09));
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --shadow: 0 18px 48px rgb(0 0 0 / 0.45);
+    --drop-shadow: drop-shadow(0 18px 48px rgb(0 0 0 / 0.45));
+    --highlighter-blend: normal;
+  }
+}
+
+*,
+::before,
+::after {
+  box-sizing: border-box;
+}
+
+html {
+  background: var(--backdrop);
+  scrollbar-gutter: stable;
+  overscroll-behavior: none;
+  overflow-anchor: none;
+  scrollbar-color: var(--muted) transparent;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+body {
+  margin: 0;
+}
+
+body:not(.reading) article,
+.reading :is(main, .band, .platen, .caret, footer) {
+  display: none;
+}
+
+main,
+article {
+  width: calc(var(--sheet-width) * var(--mm));
+  margin-block: var(--gap) 0;
+  margin-inline: auto;
+  font: calc(var(--type-size) * var(--mm)) / var(--line-height) var(--font);
+  tab-size: 2;
+  color: var(--text);
+}
+
+main ::selection,
+article ::selection {
+  background: color-mix(in srgb, var(--text) 14%, transparent);
+}
+
+textarea[data-overtyping]::selection {
+  background: none;
+}
+
+.red {
+  color: var(--ribbon-red);
+}
+
+mark {
+  color: inherit;
+  background: var(--highlighter);
+  mix-blend-mode: var(--highlighter-blend);
+  print-color-adjust: exact;
+}
+
+s {
+  text-decoration-thickness: var(--dash-thickness);
+}
+
+u {
+  text-decoration-thickness: var(--dash-thickness);
+  text-decoration-skip-ink: none;
+}
+
+b {
+  --dash-top: var(--bold-dash-top);
+  --dash-thickness: var(--bold-dash-thickness);
+  --equals-top: var(--bold-equals-top);
+  --equals-height: var(--bold-equals-height);
+  --bar-width: var(--bold-bar-width);
+}
+
+.rule,
+.double-rule,
+.joint {
+  position: relative;
+  -webkit-text-fill-color: transparent;
+}
+
+.rule::before,
+.double-rule::before,
+.joint::before,
+.joint::after {
+  content: '';
+  position: absolute;
+  background: currentColor;
+  print-color-adjust: exact;
+}
+
+.rule::before,
+.joint::before {
+  inset-inline: var(--left, 0) var(--right, 0);
+  inset-block-start: var(--dash-top);
+  block-size: var(--dash-thickness);
+}
+
+.double-rule::before {
+  inset-inline: 0;
+  inset-block-start: var(--equals-top);
+  block-size: var(--equals-height);
+  background: linear-gradient(currentColor var(--dash-thickness), transparent 0 calc(100% - var(--dash-thickness)), currentColor 0);
+}
+
+.joint {
+  --left: 50%;
+  --right: 50%;
+  --dash-middle: calc(var(--dash-top) + var(--dash-thickness) / 2);
+}
+
+.joint.left {
+  --left: 0;
+}
+
+.joint.right {
+  --right: 0;
+}
+
+.joint::after {
+  inset-block: var(--up, var(--dash-middle)) var(--down, calc(100% - var(--dash-middle)));
+  inset-inline-start: calc(50% - var(--bar-width) / 2);
+  inline-size: var(--bar-width);
+}
+
+.joint.up {
+  --up: calc((100% - 1lh) / 2);
+}
+
+.joint.down {
+  --down: calc((100% - 1lh) / 2);
+}
+
+/* Text wraps the same way everywhere, which page splitting relies on. break-spaces makes spaces wrap
+   like letters instead of hanging past the edge, which browsers do differently. */
+main > *,
+section {
+  white-space: break-spaces;
+  overflow-wrap: break-word;
+}
+
+/* The roll reaches past the window both ways, so its first and last lines can both sit on the typing line. */
+main {
+  position: relative;
+  display: grid;
+  grid-template-areas: 'text';
+  grid-template-columns: minmax(0, 1fr);
+  margin-block-start: calc(var(--typing-line) - var(--page-margin));
+  padding: var(--page-margin);
+  padding-block-end: calc(100dvh - var(--typing-line) - var(--gap));
+  isolation: isolate;
+}
+
+/* The paper is cut, not painted over: its shadow follows the notches at each page's end. */
+.roll {
+  position: absolute;
+  grid-area: auto;
+  inset: 0;
+  z-index: -1;
+  border-radius: 2px 2px 0 0;
+  filter: var(--drop-shadow);
+  --page-rows: calc(var(--sheet-rows) * var(--gap));
+}
+
+.roll::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background: var(--paper);
+  --notches-top: calc(var(--page-margin) + var(--page-rows) - 0.3em);
+  mask:
+    linear-gradient(#000 0 0),
+    linear-gradient(transparent calc(var(--page-margin) + var(--page-rows) / 2), #000 0),
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 5 8' preserveAspectRatio='xMinYMin meet'%3E%3Cpath d='M0 0 5 4 0 8z'/%3E%3C/svg%3E") left -1px top var(--notches-top) / 0.375em var(--page-rows) repeat-y,
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 5 8' preserveAspectRatio='xMinYMin meet'%3E%3Cpath d='M5 0 0 4 5 8z'/%3E%3C/svg%3E") right -1px top var(--notches-top) / 0.375em var(--page-rows) repeat-y;
+  mask-composite: subtract, intersect, add;
+}
+
+/* The strike point stays put while the paper moves: the band, the platen's shade, and the caret
+   are fixed to the window, not drawn on the paper. */
+.band,
+.platen,
+.caret {
+  position: fixed;
+  pointer-events: none;
+}
+
+.band,
+.platen {
+  inset-inline: 0;
+  margin-inline: auto;
+}
+
+.band {
+  inset-block-start: var(--typing-line);
+  width: calc(var(--sheet-width) * var(--mm));
+  height: var(--gap);
+  background: color-mix(in oklab, var(--text) 5%, transparent);
+  transition: opacity 150ms;
+}
+
+:is(.rolling, .sliding) .band {
+  opacity: 0.5;
+  transition-delay: 100ms;
+}
+
+.platen {
+  inset-block: calc(var(--typing-line) + var(--gap)) 0;
+  width: calc(var(--sheet-width) * var(--mm) - 2 * var(--page-margin));
+  background: linear-gradient(transparent, color-mix(in oklab, var(--paper) 60%, transparent));
+}
+
+main > * {
+  grid-area: text;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  font: inherit;
+}
+
+textarea {
+  overflow: hidden;
+  resize: none;
+  outline: none;
+  color: transparent;
+  caret-color: transparent;
+  background: none;
+}
+
+.caret {
+  inset-block-start: calc(var(--typing-line) + var(--gap));
+  height: var(--thickness);
+  margin-top: calc(-1 * var(--thickness));
+  border-radius: 1px;
+  background: var(--text);
+  transition: opacity 150ms;
+}
+
+.caret[data-insert]:not([data-style]) {
+  height: calc(0.7 * var(--gap));
+  margin-top: calc(-0.85 * var(--gap));
+}
+
+.caret[data-style='bold'] {
+  scale: 1 2;
+  transform-origin: bottom;
+}
+
+.caret[data-style='red'] {
+  background: var(--ribbon-red);
+}
+
+.caret[data-style='underline']:not([data-deciding]) {
+  margin-top: calc(-0.2 * var(--gap));
+}
+
+.caret[data-style='strike'] {
+  margin-top: calc(-0.55 * var(--gap));
+}
+
+.caret[data-style='highlight'] {
+  height: var(--gap);
+  margin-top: calc(-1 * var(--gap));
+  border-radius: 0;
+  background: var(--highlighter);
+  mix-blend-mode: var(--highlighter-blend);
+}
+
+.pending {
+  opacity: 0.4;
+}
+
+.rolling .caret {
+  opacity: 0;
+  transition: opacity 80ms 40ms;
+}
+
+main:not(:focus-within) ~ .caret {
+  visibility: hidden;
+}
+
+textarea::placeholder {
+  color: var(--text);
+  opacity: 0.5;
+}
+
+/* The textarea keeps the cursor, selection, and input; the mirror draws the text with its marks.
+   The mirror is inert, so the browser's find (Ctrl+F) only finds the textarea's text. */
+.mirror {
+  pointer-events: none;
+
+  /* Whitespace marks: · space, → tab, ¶ line break. The dot and arrow are painted on their own
+     character's element, so they add nothing to the layout. ¶ sits in a zero-width box after the
+     line's last character, which only a line break can carry: anywhere else, a box adds a place to
+     break the line. */
+  & i {
+    font-style: normal;
+  }
+
+  & .space {
+    background: radial-gradient(circle, var(--whitespace) 0.07em, transparent 0.09em);
+  }
+
+  & .tab {
+    --arrow: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 10 10'%3E%3Cpath d='M1.5 5h6.5M5.5 2.5 8 5 5.5 7.5' fill='none' stroke='black' stroke-width='0.9'/%3E%3C/svg%3E") left center / 1ch 1ch no-repeat;
+    background: var(--whitespace);
+    mask: var(--arrow);
+  }
+
+  & .break::before {
+    content: '¶';
+    display: inline-block;
+    width: 0;
+    color: var(--whitespace);
+  }
+}
+
+.ruler {
+  position: absolute;
+  inset-block-start: 0;
+  inset-inline: 0;
+  visibility: hidden;
+}
+
+footer {
+  position: fixed;
+  inset-inline-end: var(--gap);
+  inset-block-end: var(--gap);
+  font: calc(3.175 * var(--mm)) / var(--line-height) var(--font);
+  text-align: end;
+  white-space: pre-line;
+  color: var(--muted);
+}
+
+footer::after {
+  content: attr(data-counts);
+}
+
+@media (aspect-ratio <= 4 / 3) {
+  footer {
+    display: none;
+  }
+}
+
+article {
+  margin-block-end: var(--gap);
+  counter-reset: page;
+}
+
+section {
+  position: relative;
+  background: var(--paper);
+  box-shadow: var(--shadow);
+  height: calc(var(--sheet-height) * var(--mm));
+  padding: var(--page-margin) var(--page-margin) calc(var(--sheet-foot) * var(--mm));
+  border-radius: 2px;
+  counter-increment: page;
+}
+
+section + section {
+  margin-block-start: var(--gap);
+}
+
+section::after {
+  content: counter(page);
+  position: absolute;
+  inset-inline: 0;
+  inset-block-end: calc(12.7 * var(--mm));
+  font-size: 0.75em;
+  text-align: center;
+  color: var(--muted);
+}
+
+@media (forced-colors: active) {
+  textarea {
+    color: CanvasText;
+    caret-color: auto;
+  }
+
+  .mirror {
+    visibility: hidden;
+  }
+
+  .band,
+  .platen,
+  .caret {
+    display: none;
+  }
+}
+
+@page {
+  size: A4;
+  margin: 0;
+}
+
+@media print {
+  :root {
+    --mm: 1mm;
+    color-scheme: light;
+    --highlighter-blend: multiply;
+  }
+
+  html {
+    background: none;
+  }
+
+  article,
+  section {
+    margin: 0;
+    background: none;
+    box-shadow: none;
+    border-radius: 0;
+  }
+
+  section {
+    height: auto;
+    padding-block-end: 0;
+  }
+
+  section:not(:last-child) {
+    break-after: page;
+  }
+
+  footer,
+  section::after {
+    display: none;
+  }
+}
