@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="color-scheme" content="light dark">
+  <meta name="description" content="A typewriter in a browser tab.">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self'; style-src 'self'; font-src 'self'; img-src 'self' data:; base-uri 'none'; form-action 'none'">
+  <title>Shush</title>
+  <link rel="stylesheet" href="css/style.css">
+  <link rel="icon" href="favicon.svg" type="image/svg+xml">
+  <script type="module" src="js/main.js"></script>
+</head>
+<body>
+  <main>
+    <div class="roll" aria-hidden="true"></div>
+    <textarea aria-label="Note" rows="1" autofocus spellcheck="false" placeholder="Shh. The page is yours."></textarea>
+    <div class="mirror" aria-hidden="true" inert></div>
+    <div class="ruler" aria-hidden="true"></div>
+  </main>
+  <div class="band" aria-hidden="true"></div>
+  <div class="platen" aria-hidden="true"></div>
+  <div class="caret" aria-hidden="true"></div>
+  <article aria-label="Pages"></article>
+  <footer></footer>
+</body>
+</html>
