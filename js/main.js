@@ -121,3 +121,5 @@ addEventListener('keydown', (event) => {
     if (event.key.length === 1 && !event.ctrlKey && !event.metaKey) selectLetterToOvertype(event.key);
   }
 });
+
+if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js');
