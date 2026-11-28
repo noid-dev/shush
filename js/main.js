@@ -1,8 +1,9 @@
 import { textarea, isReading, lineHeightOf, cursorPosition, lineStartBefore, lineEndAfter, measureCharactersPerRow, rowOf, rowStart } from './layout.js';
 import { scheduleUpdate, tabToNextStop, countTotals, showCounts } from './paper.js';
-import { loadDraft, returnTo, updateMirror, stoppedAt, toggleOvertype, selectLetterToOvertype } from './note.js';
-import { sheetSpacing, showReading, showWriting } from './pages.js';
+import { loadDraft, openDraft, returnTo, updateMirror, stoppedAt, toggleOvertype, selectLetterToOvertype } from './note.js';
+import { sheetSpacing, showReading, showWriting, recutSheets } from './pages.js';
 import { saveAsTextFile, openTextFile } from './files.js';
+import { draftKey, neighbourDraft } from './drafts.js';
 import './drawer.js';
 
 const CURSOR_KEYS = /^(Arrow|Home|End)/;
@@ -51,6 +52,19 @@ function endOfWrappedRow() {
   return wrapsAtSpace ? nextRowStart - 1 : -1;
 }
 
+const atPaperEnd = (direction) => (direction > 0
+  ? scrollY + innerHeight >= document.documentElement.scrollHeight - 1
+  : scrollY <= 0);
+
+function turnToNeighbour(direction) {
+  const next = neighbourDraft(direction);
+  if (!next) return;
+  openDraft(next.id, { at: direction > 0 ? 0 : next.text.length });
+  if (!isReading()) return;
+  recutSheets();
+  scrollTo(0, direction > 0 ? 0 : document.documentElement.scrollHeight);
+}
+
 const CTRL_JUMPS = {
   ArrowLeft: () => wordStart(false),
   ArrowRight: () => wordStart(true),
@@ -85,9 +99,14 @@ addEventListener('keydown', (event) => {
     openTextFile();
   } else if (event.key === 'PageDown' || event.key === 'PageUp') {
     event.preventDefault();
+    const direction = event.key === 'PageDown' ? 1 : -1;
+    if (atPaperEnd(direction)) {
+      if (!event.repeat) turnToNeighbour(direction);
+      return;
+    }
     const lineHeight = lineHeightOf(textarea);
     const page = isReading() ? sheetSpacing().pitch : Math.floor(innerHeight / lineHeight) * lineHeight;
-    scrollBy(0, event.key === 'PageDown' ? page : -page);
+    scrollBy(0, direction * page);
   } else if (CTRL_JUMPS[event.key] && event.ctrlKey && !event.altKey && !event.metaKey && !isReading()) {
     event.preventDefault();
     cursorKeyPressed = true;
@@ -121,6 +140,10 @@ addEventListener('keydown', (event) => {
     cursorKeyPressed = CURSOR_KEYS.test(event.key);
     if (event.key.length === 1 && !event.ctrlKey && !event.metaKey) selectLetterToOvertype(event.key);
   }
+});
+
+addEventListener('storage', (event) => {
+  if (isReading() && event.key?.startsWith(draftKey(''))) recutSheets();
 });
 
 addEventListener('popstate', (event) => {

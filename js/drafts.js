@@ -128,6 +128,12 @@ export function setOpenDraft(id, { path, name }) {
   openName = name;
 }
 
+export function neighbourDraft(direction) {
+  const folder = listDrafts().filter((d) => sameFolder(d.path, openPath)).sort((a, b) => naturalOrder(a.name, b.name));
+  const at = folder.findIndex((d) => d.id === openId);
+  return at < 0 ? null : folder[at + direction] ?? null;
+}
+
 export function placeInFolder() {
   if (!openPath.length) return null;
   const neighbours = listDrafts().filter((d) => d.id !== openId && sameFolder(d.path, openPath));

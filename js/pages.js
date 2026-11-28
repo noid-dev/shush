@@ -29,10 +29,7 @@ function sheetTextTop() {
 
 let lastSwitch = null;
 
-export function showReading() {
-  const lineHeight = lineHeightOf(textarea);
-  const textTop = paperTextTop();
-  const topPage = Math.floor(Math.max(0, -textTop / lineHeight) / ROWS_PER_PAGE);
+function cutSheets() {
   let offset = 0;
   sheets.replaceChildren(...splitIntoPages(textarea.value).map((page) => {
     const sheet = document.createElement('section');
@@ -40,6 +37,21 @@ export function showReading() {
     offset += page.length;
     return sheet;
   }));
+}
+
+export function recutSheets() {
+  const reading = scrollY;
+  document.body.classList.remove('reading');
+  cutSheets();
+  document.body.classList.add('reading');
+  scrollTo(0, reading);
+}
+
+export function showReading() {
+  const lineHeight = lineHeightOf(textarea);
+  const textTop = paperTextTop();
+  const topPage = Math.floor(Math.max(0, -textTop / lineHeight) / ROWS_PER_PAGE);
+  cutSheets();
   const writingScroll = scrollY;
   document.body.classList.add('reading');
   scrollBy(0, sheetTextTop() - textTop + topPage * sheetSpacing().overhead);
