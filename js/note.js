@@ -1,7 +1,7 @@
 import { ZERO_WIDTH_SPACE, textarea, mirror, lineStartBefore, lineEndAfter, codePointCount, lineBreaksBefore, charactersPerRow, rowOf, ROWS_PER_PAGE } from './layout.js';
-import { scheduleUpdate, placeCaret } from './paper.js';
+import { scheduleUpdate, placeCaret, countTotals } from './paper.js';
+import { openId, openPath, openName, DEFAULT_NAME, draftKey, readDraft, writeDraft, setOpenDraft, lastVisitedId, newDraftId, rememberVisit } from './drafts.js';
 
-const STORAGE_KEY = 'browser_notes_content';
 const [BOLD, UNDERLINE, STRIKE, RED, HIGHLIGHT, PENDING] = [1, 2, 4, 8, 16, 32];
 const STYLES = BOLD | UNDERLINE | STRIKE | RED | HIGHLIGHT;
 const MARK_TAGS = [[BOLD, 'b'], [UNDERLINE, 'u'], [STRIKE, 's'], [RED, 'span', 'red'], [HIGHLIGHT, 'mark'], [PENDING, 'span', 'pending']];
@@ -30,11 +30,40 @@ function setMarks(runs) {
   try { for (const [from, to, mark] of runs) marks.fill(mark & STYLES, from, to); } catch {}
 }
 
-export function loadNote() {
-  let note = null;
-  try { note = JSON.parse(localStorage.getItem(STORAGE_KEY)); } catch {}
-  textarea.value = note?.text ?? '';
-  setMarks(note?.marks ?? []);
+function showDraft(id, { path = [], name = DEFAULT_NAME } = {}) {
+  const draft = readDraft(id);
+  setOpenDraft(id, draft ?? { path, name });
+  textarea.value = draft?.text ?? '';
+  setMarks(draft?.marks ?? []);
+}
+
+export function loadDraft() {
+  const opening = lastVisitedId() ?? newDraftId();
+  showDraft(opening);
+  rememberVisit(opening);
+}
+
+function feed(id, { at = 0, focus = true, path, name } = {}) {
+  pendingStyle = null;
+  stopStyling();
+  markHistory.length = 0;
+  deletedAt = -1;
+  showDraft(id, { path, name });
+  rememberVisit(id);
+  if (focus) textarea.focus({ preventScroll: true });
+  textarea.setSelectionRange(at, at);
+  redrawMirror();
+  countTotals();
+  scheduleUpdate('follow', true);
+}
+
+export function openDraft(id, options) {
+  saveNow();
+  feed(id, options);
+}
+
+export function startNewDraft(filing) {
+  openDraft(newDraftId(), filing);
 }
 
 function markRuns() {
@@ -67,10 +96,17 @@ function saveSoon() {
   pendingSave ||= setTimeout(saveNote, SAVE_INTERVAL);
 }
 
+export function saveNow() {
+  if (pendingSave) saveNote();
+}
+
 function saveNote() {
   clearTimeout(pendingSave);
   pendingSave = 0;
-  try { localStorage.setItem(STORAGE_KEY, JSON.stringify({ text: textarea.value, marks: markRuns() })); } catch {}
+  const saved = writeDraft(openId, { path: openPath, name: openName, text: textarea.value, marks: markRuns() });
+  if (!saved) return;
+  setOpenDraft(openId, { path: openPath, name: saved });
+  rememberVisit(openId);
 }
 
 function shiftMarksWithText() {
@@ -149,8 +185,9 @@ function withLines(text, offset) {
 export function withMarks(text, offset) {
   const pieces = [];
   for (let i = 0, j; i < text.length; i = j) {
-    for (j = i + 1; j < text.length && marks[offset + j] === marks[offset + i]; j++);
-    pieces.push(marked(withLines(text.slice(i, j), offset + i), marks[offset + i]));
+    const at = offset + i;
+    for (j = i + 1; j < text.length && marks[offset + j] === marks[at]; j++);
+    pieces.push(marked(withLines(text.slice(i, j), at), marks[at]));
   }
   return pieces;
 }
@@ -423,13 +460,16 @@ document.addEventListener('visibilitychange', () => {
   if (document.hidden && pendingSave) saveNote();
 });
 
-addEventListener('storage', (event) => {
-  if (event.key !== STORAGE_KEY) return;
+export function reloadOpenDraft() {
   pendingStyle = null;
   stopStyling();
   const { selectionStart, selectionEnd } = textarea;
-  loadNote();
+  showDraft(openId);
   textarea.setSelectionRange(selectionStart, selectionEnd);
   redrawMirror();
   scheduleUpdate(null, true);
+}
+
+addEventListener('storage', (event) => {
+  if (event.key === draftKey(openId)) reloadOpenDraft();
 });

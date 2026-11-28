@@ -1,4 +1,5 @@
-import { textarea, paper, isReading, lineHeightOf, cursorPosition, lineStartBefore, codePointCount, countMatches, lineBreaksBefore, characterWidth, charactersPerRow, measureCharactersPerRow, measureStrokes, rowOf, rowStart, offsetInRow, rowLeft } from './layout.js';
+import { textarea, paper, isReading, isFinding, lineHeightOf, cursorPosition, lineStartBefore, codePointCount, countMatches, lineBreaksBefore, characterWidth, charactersPerRow, measureCharactersPerRow, measureStrokes, rowOf, rowStart, offsetInRow, rowLeft } from './layout.js';
+import { placeInFolder } from './drafts.js';
 
 const CARET_THICKNESS = 1.75;
 const PAPER_FEED = { duration: 120, easing: 'cubic-bezier(0.2, 0.8, 0.2, 1)' };
@@ -17,6 +18,7 @@ let caretLeft = 0;
 let carriageX = 0;
 
 export function placeCaret(carriageMoves = false) {
+  if (isFinding()) return;
   caret.hidden = textarea.selectionStart !== textarea.selectionEnd && !textarea.hasAttribute('data-overtyping');
   if (caret.hidden) return;
   const pixel = 1 / devicePixelRatio;
@@ -134,10 +136,12 @@ export function showCounts() {
   const selection = text.slice(textarea.selectionStart, textarea.selectionEnd);
   const selected = codePointCount(selection);
   const column = codePointCount(text.slice(lineStartBefore(text, cursor), cursor)) + 1;
+  const place = placeInFolder();
   counts.dataset.counts = [
     `Ln ${lineBreaksBefore(text, cursor) + 1}, Col ${column}`,
     selected ? `${selected.toLocaleString()} of ${characters}` : characters,
     selected ? `${countMatches(WORD, selection).toLocaleString()} of ${words}` : words,
+    ...(place ? [`${place.position.toLocaleString()} of ${plural(place.total, 'draft')}`] : []),
   ].join('\n');
 }
 
@@ -183,7 +187,7 @@ addEventListener('resize', remeasure);
 const showsRolling = 'onscrollend' in window;
 
 addEventListener('scroll', () => {
-  if (isReading() || scrollY === ownScrollY) return;
+  if (isReading() || isFinding() || scrollY === ownScrollY) return;
   document.body.classList.toggle('rolling', showsRolling);
   scheduleUpdate('knob');
 });
@@ -198,7 +202,7 @@ let swipe = { at: -Infinity };
 let sliding = 0;
 
 addEventListener('wheel', (event) => {
-  if (isReading() || textarea.selectionStart !== textarea.selectionEnd) return;
+  if (isReading() || isFinding() || textarea.selectionStart !== textarea.selectionEnd) return;
   if (event.timeStamp - swipe.at > SWIPE_PAUSE) swipe = { sideways: Math.abs(event.deltaX) > Math.abs(event.deltaY), travel: 0 };
   swipe.at = event.timeStamp;
   if (!swipe.sideways) return;

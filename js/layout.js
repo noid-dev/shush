@@ -10,6 +10,7 @@ const ruler = document.querySelector('.ruler');
 
 export const ROWS_PER_PAGE = Number(getComputedStyle(document.documentElement).getPropertyValue('--sheet-rows'));
 export const isReading = () => document.body.classList.contains('reading');
+export const isFinding = () => document.body.classList.contains('finding');
 export const lineHeightOf = (element) => parseFloat(getComputedStyle(element).lineHeight);
 export const cursorPosition = () => (textarea.selectionDirection === 'backward' ? textarea.selectionStart : textarea.selectionEnd);
 export const lineStartBefore = (text, i) => (i ? text.lastIndexOf('\n', i - 1) + 1 : 0);
@@ -124,6 +125,52 @@ export function rowStart(row) {
     else high = middle;
   }
   return low;
+}
+
+// Reads row starts off the laid-out mirror instead of measuring in the ruler, so the page lays out once.
+export function rowLocator() {
+  const text = textarea.value;
+  const lineHeight = lineHeightOf(textarea);
+  const textTop = textarea.getBoundingClientRect().top;
+  const nodes = [];
+  const starts = [];
+  const walker = document.createTreeWalker(mirror, NodeFilter.SHOW_TEXT);
+  for (let node = walker.nextNode(), at = 0; node; node = walker.nextNode()) {
+    nodes.push(node);
+    starts.push(at);
+    at += node.length;
+  }
+  const range = document.createRange();
+  const rowAt = (i) => {
+    let n = 0;
+    for (let low = 0, high = nodes.length - 1; low <= high;) {
+      const middle = (low + high) >> 1;
+      if (starts[middle] <= i) [n, low] = [middle, middle + 1];
+      else high = middle - 1;
+    }
+    const mark = nodes[n].parentElement;
+    let box;
+    if (mark.localName === 'i') {
+      box = mark.getBoundingClientRect();
+    } else {
+      const offset = i - starts[n];
+      range.setStart(nodes[n], offset);
+      range.setEnd(nodes[n], Math.min(offset + 1, nodes[n].length));
+      box = range.getBoundingClientRect();
+    }
+    return Math.floor((box.top - textTop) / lineHeight + 0.25);
+  };
+  return (row) => {
+    let low = 0;
+    let high = text.length;
+    while (low < high) {
+      const middle = (low + high) >> 1;
+      if (rowAt(middle) < row) low = middle + 1;
+      else high = middle;
+    }
+    const code = text.charCodeAt(low);
+    return code >= 0xdc00 && code <= 0xdfff ? low - 1 : low;
+  };
 }
 
 const caretProbe = document.createElement('span');

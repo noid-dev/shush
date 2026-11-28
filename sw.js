@@ -1,16 +1,4 @@
-// Offline mode - service worker (network-first).
-//
-// On every page load:
-//   - try to download the latest app (the page + every file it needs, see below)
-//   - done within 1 s   -> serve it
-//   - slower            -> serve the stored copy; the download continues and is stored when done
-//   - failed / offline  -> serve the stored copy
-//   - nothing stored    -> wait for the download; if it fails, the browser shows "can't connect"
-// Every other same-origin GET (CSS, JS, fonts, images) is served from the stored copy, so it
-// matches the page. A new version is stored only when every file arrived; files that are no
-// longer part of the app are then removed from the stored copy.
-//
-// Turning offline mode off: never just delete this file (browsers keep the old worker when
+// To turn offline mode off, never just delete this file (browsers keep the old worker when
 // sw.js returns 404). Deploy this instead; it reaches users on their next online visit:
 //   self.addEventListener('install', () => self.skipWaiting());
 //   self.addEventListener('activate', e => e.waitUntil(
@@ -35,8 +23,6 @@ self.addEventListener('fetch', e => {
   else e.respondWith(onFileLoad(req));
 });
 
-// ---- Requests ----
-
 async function onPageLoad(event) {
   const stored = await storedFile(BASE_URL);
   if (stored && !self.navigator.onLine) return stored;
@@ -59,8 +45,6 @@ function storedFile(url) {
   return caches.match(url, { cacheName: OFFLINE_STORE });
 }
 
-// ---- Updating the stored copy ----
-
 let updating = null;
 function updateStore() {
   updating ||= download().finally(() => { updating = null; });
@@ -68,8 +52,6 @@ function updateStore() {
 }
 
 async function download() {
-  // no-cache: ask the server if changed; 304 reaches this code as a normal 200.
-  // redirect:'error': any redirect (301/302/303/307/308) fails the request.
   const options = { cache: 'no-cache', redirect: 'error' };
   const get = async url => {
     const res = await fetch(url, options);
@@ -77,7 +59,6 @@ async function download() {
     return [url, res];
   };
 
-  // Download in waves: the page, then what it references, then what those reference...
   const files = new Map();   // url -> response
   let wave = [BASE_URL];
   while (wave.length) {

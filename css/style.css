@@ -41,14 +41,15 @@
   --highlighter-blend: multiply;
   --whitespace: color-mix(in oklab, var(--muted) 45%, transparent);
   --shadow: 0 0.5px 1px rgb(60 45 25 / 0.1), 0 2px 6px rgb(60 45 25 / 0.05), 0 18px 48px rgb(60 45 25 / 0.09);
-  --drop-shadow: drop-shadow(0 0.5px 1px rgb(60 45 25 / 0.1)) drop-shadow(0 2px 6px rgb(60 45 25 / 0.05))
-    drop-shadow(0 18px 48px rgb(60 45 25 / 0.09));
+  --notch-left: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 5 8' preserveAspectRatio='xMinYMin meet'%3E%3Cpath d='M0 0 5 4 0 8z' fill='%23e4dfd4'/%3E%3C/svg%3E");
+  --notch-right: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 5 8' preserveAspectRatio='xMinYMin meet'%3E%3Cpath d='M5 0 0 4 5 8z' fill='%23e4dfd4'/%3E%3C/svg%3E");
 }
 
 @media (prefers-color-scheme: dark) {
   :root {
     --shadow: 0 18px 48px rgb(0 0 0 / 0.45);
-    --drop-shadow: drop-shadow(0 18px 48px rgb(0 0 0 / 0.45));
+    --notch-left: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 5 8' preserveAspectRatio='xMinYMin meet'%3E%3Cpath d='M0 0 5 4 0 8z' fill='%23131211'/%3E%3C/svg%3E");
+    --notch-right: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 5 8' preserveAspectRatio='xMinYMin meet'%3E%3Cpath d='M5 0 0 4 5 8z' fill='%23131211'/%3E%3C/svg%3E");
     --highlighter-blend: normal;
   }
 }
@@ -204,30 +205,25 @@ main {
   isolation: isolate;
 }
 
-/* The paper is cut, not painted over: its shadow follows the notches at each page's end. */
+/* Notches are painted, not masked: Firefox drops a mask or filter on an element as tall as a long draft. */
 .roll {
   position: absolute;
   grid-area: auto;
   inset: 0;
   z-index: -1;
   border-radius: 2px 2px 0 0;
-  filter: var(--drop-shadow);
+  background: var(--paper);
+  box-shadow: var(--shadow);
   --page-rows: calc(var(--sheet-rows) * var(--gap));
 }
 
 .roll::before {
   content: '';
   position: absolute;
-  inset: 0;
-  border-radius: inherit;
-  background: var(--paper);
-  --notches-top: calc(var(--page-margin) + var(--page-rows) - 0.3em);
-  mask:
-    linear-gradient(#000 0 0),
-    linear-gradient(transparent calc(var(--page-margin) + var(--page-rows) / 2), #000 0),
-    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 5 8' preserveAspectRatio='xMinYMin meet'%3E%3Cpath d='M0 0 5 4 0 8z'/%3E%3C/svg%3E") left -1px top var(--notches-top) / 0.375em var(--page-rows) repeat-y,
-    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 5 8' preserveAspectRatio='xMinYMin meet'%3E%3Cpath d='M5 0 0 4 5 8z'/%3E%3C/svg%3E") right -1px top var(--notches-top) / 0.375em var(--page-rows) repeat-y;
-  mask-composite: subtract, intersect, add;
+  inset: calc(var(--page-margin) + var(--page-rows) - 0.3em) -1px 0;
+  background:
+    var(--notch-left) left top / 0.375em var(--page-rows) repeat-y,
+    var(--notch-right) right top / 0.375em var(--page-rows) repeat-y;
 }
 
 /* The strike point stays put while the paper moves: the band, the platen's shade, and the caret
@@ -396,6 +392,161 @@ footer::after {
   }
 }
 
+.drawer {
+  --card-margin: calc(12.7 * var(--mm));
+  position: fixed;
+  inset-block-start: calc(var(--typing-line) - 2 * var(--gap));
+  inset-inline: 0;
+  width: calc(127 * var(--mm));
+  height: calc(12 * var(--gap));
+  z-index: 2;
+  margin-inline: auto;
+  padding: var(--gap) var(--card-margin);
+  border-radius: 2px;
+  overflow: hidden;
+  font: calc(var(--type-size) * var(--mm)) / var(--line-height) var(--font);
+  color: var(--text);
+  background: var(--paper);
+  box-shadow: var(--shadow);
+
+  &::before {
+    content: '';
+    position: absolute;
+    inset-inline: 0;
+    inset-block-start: calc(2 * var(--gap));
+    height: 1px;
+    background: color-mix(in oklab, var(--text) 14%, transparent);
+  }
+
+  & label {
+    display: flex;
+    height: var(--gap);
+  }
+
+  & .place {
+    flex: none;
+    color: var(--muted);
+    max-width: 60%;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: pre;
+  }
+
+  & input {
+    flex: auto;
+    min-width: 0;
+    height: var(--gap);
+    margin: 0;
+    padding: 0;
+    border: 0;
+    outline: none;
+    font: inherit;
+    color: inherit;
+    caret-color: transparent;
+    background: none;
+  }
+
+  & input::placeholder {
+    color: var(--muted);
+  }
+
+  & ol {
+    height: calc(9 * var(--gap));
+    margin: 0 calc(-1 * var(--card-margin));
+    padding: 0;
+    overflow-y: auto;
+    list-style: none;
+    scrollbar-width: none;
+  }
+
+  & ol.more-below {
+    mask: linear-gradient(#000 calc(100% - var(--gap)), transparent);
+  }
+
+  & ol.more-above {
+    mask: linear-gradient(transparent, #000 var(--gap));
+  }
+
+  & ol.more-above.more-below {
+    mask: linear-gradient(transparent, #000 var(--gap) calc(100% - var(--gap)), transparent);
+  }
+
+  & li {
+    display: flex;
+    gap: 2ch;
+    height: var(--gap);
+    padding-inline: var(--card-margin);
+    white-space: pre;
+    color: var(--text);
+    cursor: default;
+  }
+
+  & li > span:first-child {
+    flex: auto;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    color: var(--muted);
+  }
+
+  & .name,
+  & li b {
+    color: var(--text);
+  }
+
+  & .aside,
+  & li.action .name {
+    color: var(--muted);
+  }
+
+  & .aside {
+    flex: none;
+  }
+
+  & li[aria-selected='true'] {
+    background: color-mix(in oklab, var(--text) 5%, transparent);
+  }
+
+  & li.dim,
+  & li.disabled,
+  & li:is(.dim, .disabled) :is(span, .name, b) {
+    color: color-mix(in oklab, var(--muted) 55%, transparent);
+  }
+
+  & li.dim::after,
+  &.marking li[data-draft][aria-selected='true']:not(.dim)::after {
+    flex: none;
+    color: var(--ribbon-red);
+  }
+
+  & li.dim::after {
+    content: 'remove';
+  }
+
+  &.marking li[data-draft][aria-selected='true']:not(.dim)::after {
+    content: 'replace';
+  }
+}
+
+/* A backdrop blur only reaches what's painted before it: it sits above the page, the card above it. */
+body.finding::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  z-index: 1;
+  backdrop-filter: blur(calc(0.3 * var(--mm)));
+}
+
+html:has(> body.finding) {
+  overflow: hidden;
+}
+
+body.finding .caret {
+  z-index: 2;
+  display: block;
+  visibility: visible;
+  translate: 0 calc(-1 * var(--gap));
+}
+
 article {
   margin-block-end: var(--gap);
   counter-reset: page;
@@ -476,6 +627,7 @@ section::after {
   }
 
   footer,
+  .drawer,
   section::after {
     display: none;
   }

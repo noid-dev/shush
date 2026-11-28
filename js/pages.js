@@ -1,13 +1,14 @@
-import { textarea, isReading, lineHeightOf, rowStart, ROWS_PER_PAGE } from './layout.js';
+import { textarea, isReading, lineHeightOf, rowLocator, ROWS_PER_PAGE } from './layout.js';
 import { paperTextTop, rememberOwnScroll, scheduleUpdate } from './paper.js';
 import { withMarks } from './note.js';
 
 const sheets = document.querySelector('article');
 
 function splitIntoPages(text) {
+  const startOfRow = rowLocator();
   const pages = [];
   for (let start = 0, row = ROWS_PER_PAGE; start < text.length || !pages.length; row += ROWS_PER_PAGE) {
-    const end = Math.max(rowStart(row), start + 1);
+    const end = Math.max(startOfRow(row), start + 1);
     pages.push(text.slice(start, end));
     start = end;
   }

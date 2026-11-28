@@ -1,8 +1,9 @@
 import { textarea, isReading, lineHeightOf, cursorPosition, lineStartBefore, lineEndAfter, measureCharactersPerRow, rowOf, rowStart } from './layout.js';
 import { scheduleUpdate, tabToNextStop, countTotals, showCounts } from './paper.js';
-import { loadNote, updateMirror, stoppedAt, toggleOvertype, selectLetterToOvertype } from './note.js';
+import { loadDraft, updateMirror, stoppedAt, toggleOvertype, selectLetterToOvertype } from './note.js';
 import { sheetSpacing, showReading, showWriting } from './pages.js';
 import { saveAsTextFile, openTextFile } from './files.js';
+import './drawer.js';
 
 const CURSOR_KEYS = /^(Arrow|Home|End)/;
 const STOP_PAUSE = 1000;
@@ -57,7 +58,7 @@ const CTRL_JUMPS = {
   ArrowDown: () => paragraphStart(true),
 };
 
-loadNote();
+loadDraft();
 history.scrollRestoration = 'manual';
 textarea.setSelectionRange(0, 0);
 measureCharactersPerRow();
