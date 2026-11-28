@@ -325,7 +325,8 @@ textarea {
   transition: opacity 80ms 40ms;
 }
 
-main:not(:focus-within) ~ .caret {
+main:not(:focus-within) ~ .caret,
+main:where(:has(textarea[readonly])) ~ .caret {
   visibility: hidden;
 }
 

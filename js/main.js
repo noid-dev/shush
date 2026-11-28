@@ -1,6 +1,6 @@
 import { textarea, isReading, lineHeightOf, cursorPosition, lineStartBefore, lineEndAfter, measureCharactersPerRow, rowOf, rowStart } from './layout.js';
 import { scheduleUpdate, tabToNextStop, countTotals, showCounts } from './paper.js';
-import { loadDraft, updateMirror, stoppedAt, toggleOvertype, selectLetterToOvertype } from './note.js';
+import { loadDraft, returnTo, updateMirror, stoppedAt, toggleOvertype, selectLetterToOvertype } from './note.js';
 import { sheetSpacing, showReading, showWriting } from './pages.js';
 import { saveAsTextFile, openTextFile } from './files.js';
 import './drawer.js';
@@ -121,6 +121,11 @@ addEventListener('keydown', (event) => {
     cursorKeyPressed = CURSOR_KEYS.test(event.key);
     if (event.key.length === 1 && !event.ctrlKey && !event.metaKey) selectLetterToOvertype(event.key);
   }
+});
+
+addEventListener('popstate', (event) => {
+  if (isReading()) showWriting();
+  returnTo(event.state);
 });
 
 if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js');

@@ -1,6 +1,6 @@
 import { ZERO_WIDTH_SPACE, textarea, mirror, lineStartBefore, lineEndAfter, codePointCount, lineBreaksBefore, charactersPerRow, rowOf, ROWS_PER_PAGE } from './layout.js';
 import { scheduleUpdate, placeCaret, countTotals } from './paper.js';
-import { openId, openPath, openName, DEFAULT_NAME, draftKey, readDraft, writeDraft, setOpenDraft, lastVisitedId, newDraftId, rememberVisit } from './drafts.js';
+import { openId, openPath, openName, DEFAULT_NAME, draftKey, readDraft, writeDraft, setOpenDraft, lastVisitedId, newDraftId, isKept, asId, rememberVisit } from './drafts.js';
 
 const [BOLD, UNDERLINE, STRIKE, RED, HIGHLIGHT, PENDING] = [1, 2, 4, 8, 16, 32];
 const STYLES = BOLD | UNDERLINE | STRIKE | RED | HIGHLIGHT;
@@ -30,20 +30,54 @@ function setMarks(runs) {
   try { for (const [from, to, mark] of runs) marks.fill(mark & STYLES, from, to); } catch {}
 }
 
+const NOT_HERE = 'Not in this drawer.';
+const SKIP_WAIT = 300;
+const placeholder = textarea.placeholder;
+
 function showDraft(id, { path = [], name = DEFAULT_NAME } = {}) {
   const draft = readDraft(id);
   setOpenDraft(id, draft ?? { path, name });
+  textarea.readOnly = false;
+  textarea.placeholder = placeholder;
   textarea.value = draft?.text ?? '';
   setMarks(draft?.marks ?? []);
 }
 
-export function loadDraft() {
-  const opening = lastVisitedId() ?? newDraftId();
-  showDraft(opening);
-  rememberVisit(opening);
+function markNotHere() {
+  textarea.readOnly = true;
+  textarea.placeholder = NOT_HERE;
 }
 
+const addressOf = (id) => (isKept(id) ? `#${id}` : location.pathname + location.search);
+const askedAddress = () => location.hash.slice(1);
+
+function draftAtAddress() {
+  const id = asId(askedAddress());
+  return id && isKept(id) ? id : null;
+}
+
+let step = 0;
+let skipping = 0;
+
+export function loadDraft() {
+  step = history.state?.step ?? 0;
+  const id = draftAtAddress();
+  if (askedAddress() && !id) {
+    showDraft(null);
+    markNotHere();
+    history.replaceState({ step }, '');
+    return;
+  }
+  const opening = id ?? lastVisitedId() ?? newDraftId();
+  showDraft(opening);
+  rememberVisit(opening);
+  history.replaceState({ id: opening, step }, '', addressOf(opening));
+}
+
+const caretWhereLeft = new Map();
+
 function feed(id, { at = 0, focus = true, path, name } = {}) {
+  caretWhereLeft.set(openId, textarea.selectionStart);
   pendingStyle = null;
   stopStyling();
   markHistory.length = 0;
@@ -60,6 +94,38 @@ function feed(id, { at = 0, focus = true, path, name } = {}) {
 export function openDraft(id, options) {
   saveNow();
   feed(id, options);
+  step += 1;
+  history.pushState({ id, step }, '', addressOf(id));
+}
+
+function showGone() {
+  feed(null);
+  markNotHere();
+}
+
+function skipPast(direction) {
+  if (direction < 0 && step === 0) return showGone();
+  skipping = setTimeout(showGone, SKIP_WAIT);
+  history.go(direction);
+}
+
+export function returnTo(state) {
+  clearTimeout(skipping);
+  saveNow();
+  const direction = Math.sign((state?.step ?? step) - step);
+  step = state?.step ?? step;
+  const id = draftAtAddress() ?? (askedAddress() ? null : state?.id);
+  if (id) {
+    feed(id, { at: caretWhereLeft.get(id) });
+    history.replaceState({ id, step }, '', addressOf(id));
+  } else if (askedAddress() && direction) {
+    skipPast(direction);
+  } else if (askedAddress()) {
+    showGone();
+    history.replaceState({ step }, '');
+  } else {
+    history.replaceState({ id: openId, step }, '', addressOf(openId));
+  }
 }
 
 export function startNewDraft(filing) {
@@ -104,9 +170,11 @@ function saveNote() {
   clearTimeout(pendingSave);
   pendingSave = 0;
   const saved = writeDraft(openId, { path: openPath, name: openName, text: textarea.value, marks: markRuns() });
-  if (!saved) return;
-  setOpenDraft(openId, { path: openPath, name: saved });
-  rememberVisit(openId);
+  if (saved) setOpenDraft(openId, { path: openPath, name: saved });
+  const addressed = location.hash === `#${openId}`;
+  if (!!saved === addressed) return;
+  history.replaceState(history.state, '', addressOf(openId));
+  if (saved) rememberVisit(openId);
 }
 
 function shiftMarksWithText() {
@@ -471,5 +539,7 @@ export function reloadOpenDraft() {
 }
 
 addEventListener('storage', (event) => {
-  if (event.key === draftKey(openId)) reloadOpenDraft();
+  if (event.key !== draftKey(openId)) return;
+  if (event.newValue === null) showGone();
+  else reloadOpenDraft();
 });

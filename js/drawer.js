@@ -343,6 +343,7 @@ input.addEventListener('input', () => {
 input.addEventListener('pointerup', placeCardCaret);
 list.addEventListener('scroll', markHiddenLines);
 input.addEventListener('blur', () => { if (!drawer.hidden) closeDrawer(); });
+addEventListener('popstate', () => { if (!drawer.hidden) closeDrawer(); });
 input.addEventListener('keydown', (event) => {
   event.stopPropagation();
   if (event.isComposing) return;

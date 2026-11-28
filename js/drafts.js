@@ -3,6 +3,7 @@ const LAST_ISSUED_KEY = 'shush:last-id';
 const VISITED_KEY = 'shush:visited';
 const ID_LENGTH = 4;
 const ID_COUNT = 36 ** ID_LENGTH;
+const COUNTER_ID = /^[0-9a-z]{4}$/;
 export const MAX_FOLDERS = 2;
 export const DEFAULT_NAME = 'Draft';
 const UNSAFE_IN_FILE_NAMES = /[\\/:*?"<>|\u0000-\u001f]/;
@@ -91,6 +92,11 @@ export function listDrafts() {
   } catch {}
   cachedDrafts = drafts;
   return [...drafts];
+}
+
+export function asId(text) {
+  const id = text.toLowerCase();
+  return COUNTER_ID.test(id) ? id : null;
 }
 
 const nextCount = (count) => (count % (ID_COUNT - 1)) + 1;
